@@ -15,10 +15,12 @@ const connection = mysql.createConnection({
 connection.connect((err) => {
   if (err) throw err;
   console.log('Connected to database as id');
+  questionLoop();
+
 });
 
-inquirer
-  .prompt([
+function questionLoop() {
+  const questions = [
     {
       type: 'list',
       name: 'action',
@@ -31,12 +33,21 @@ inquirer
         'Add a role',
         'Add an employee',
         'Update an employee role',
-        'Exit',
+        'Exit'
       ],
-    },
-  ])
-  .then((answer) => {
-    switch (answer.action) {
+    }
+  ]
+
+
+inquirer
+  .prompt(questions).then((answers) => {
+    manager(answers.action); // Pass the selected action to the manager function
+    console.log(answers);
+
+  })
+  function manager(manageList) {
+  
+    switch (manageList) {
       case 'View all departments':
         viewAllDepartments();
         break;
@@ -61,8 +72,12 @@ inquirer
       case 'Exit':
         connection.end();
         break;
+        default:
+      console.log('Invalid action');
+      questionLoop(); 
     }
-  });
+  }
+}
 
   function viewAllDepartments() {
     connection.query('SELECT * FROM departments', (err, res) => {
@@ -70,7 +85,36 @@ inquirer
   
       console.table(res);
   
+      questionLoop(); 
 
     });
   }
 
+  function viewAllRoles() {
+    connection.query(`
+      SELECT roles.title AS "Job Title", roles.id AS "Role ID", departments.department_name AS "Department", roles.salary AS "Salary"
+      FROM roles
+      INNER JOIN departments ON roles.department_id = departments.id
+    `, (err, res) => {
+      if (err) throw err;
+      console.table(res);
+      questionLoop();
+    });
+  }
+
+  function viewAllEmployees() {
+    const sql = `
+      SELECT e.id, e.first_name AS "First Name", e.last_name AS "Last Name", 
+        roles.title AS "Job Title", departments.department_name AS "Department", roles.salary AS "Salary", 
+        CONCAT(m.first_name, ' ', m.last_name) AS "Manager"
+      FROM employees e
+      INNER JOIN roles ON e.role_id = roles.id
+      INNER JOIN departments ON roles.department_id = departments.id
+      LEFT JOIN employees m ON e.manager_id = m.id
+    `;
+    connection.query(sql, (err, results) => {
+      if (err) throw err;
+      console.table(results);
+      questionLoop();
+    });
+  }
