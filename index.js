@@ -41,7 +41,7 @@ function questionLoop() {
 
 inquirer
   .prompt(questions).then((answers) => {
-    manager(answers.action); // Pass the selected action to the manager function
+    manager(answers.action);
     console.log(answers);
 
   })
@@ -118,3 +118,72 @@ inquirer
       questionLoop();
     });
   }
+
+
+  function addDepartment() {
+    const questions = [ 
+    {
+      type: 'input',
+      name: 'departmentName',
+      message: 'What is the name of the department you would like to add?',
+    }, 
+  ];
+  
+    inquirer.prompt(questions).then((answers) => {
+      connection.query('INSERT INTO departments (department_name) VALUES (?)',
+        [answers.departmentName],
+        (err, res) => {
+          if (err) throw err;
+          console.log(`${answers.departmentName} department has been added.`);
+          questionLoop();
+        }
+      );
+    });
+  }
+  
+
+  function addRole() {
+    connection.query('SELECT * FROM departments', (err, res) => {
+      if (err) throw err;
+  
+      const departmentChoices = res.map(department => {
+        return { name: department.department_name, value: department.id };
+      });
+  
+      const questions = [
+        {
+          type: 'input',
+          name: 'roleTitle',
+          message: 'Enter the name of the role:',
+        },
+        {
+          type: 'input',
+          name: 'roleSalary',
+          message: 'Enter the salary for the role:',
+        },
+        {
+          type: 'list',
+          name: 'department',
+          message: 'Select the department for the role:',
+          choices: departmentChoices,
+        },
+      ];
+  
+      inquirer.prompt(questions).then((answers) => {
+        connection.query(
+          'INSERT INTO roles SET ?',
+          {
+            title: answers.roleTitle,
+            salary: answers.roleSalary,
+            department_id: answers.department,
+          },
+          (err, res) => {
+            if (err) throw err;
+            console.log(`\n${answers.roleTitle} role has been added to the database.\n`);
+            questionLoop();
+          }
+        );
+      });
+    });
+  }
+  
