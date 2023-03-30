@@ -187,3 +187,59 @@ inquirer
     });
   }
   
+
+  function addEmployee() {
+    const roleChoices = [];
+    const managerChoices = [
+          { 
+            name: 'None', 
+            value: null
+          }
+      ];
+  
+
+    connection.query('SELECT * FROM roles', (err, resRoles) => {
+      if (err) throw err;
+  
+      connection.query('SELECT id, first_name, last_name FROM employees', (err, resEmployees) => {
+        if (err) throw err;
+  
+        roleChoices.push(...resRoles.map(role => ({ name: role.title, value: role.id })));
+        managerChoices.push(...resEmployees.map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee.id })));
+  
+        inquirer.prompt([
+          {
+            type: 'input',
+            name: 'firstName',
+            message: 'Enter the employee\'s first name:'
+          },
+          {
+            type: 'input',
+            name: 'lastName',
+            message: 'Enter the employee\'s last name:'
+          },
+          {
+            type: 'list',
+            name: 'roleId',
+            message: 'Select the employee\'s role:',
+            choices: roleChoices
+          },
+          {
+            type: 'list',
+            name: 'managerId',
+            message: 'Select the employee\'s manager:',
+            choices: managerChoices
+          }
+        ]).then((answers) => {
+          connection.query('INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)',
+            [answers.firstName, answers.lastName, answers.roleId, answers.managerId],
+            (err, res) => {
+              if (err) throw err;
+              console.log(`\n${answers.firstName} ${answers.lastName} has been added to the database.\n`);
+              questionLoop();
+            }
+          );
+        });
+      });
+    });
+  }
